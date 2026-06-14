@@ -19,11 +19,9 @@ pip install -r requirements_sft.txt
 ```
 
 RL environment uses [veRL](https://github.com/volcengine/verl) v0.4.1 with vLLM.
-A pre-built Docker image is available:
+See the official documentation for installation and Docker images:
 
-```
-registry.h.pjlab.org.cn/ailab/ml-base:22.04-pjlab-20260323
-```
+https://verl.readthedocs.io
 
 ---
 
