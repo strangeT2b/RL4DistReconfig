@@ -156,7 +156,6 @@ def main() -> int:
     )
 
     training_arguments = SFTConfig(
-        dataset_kwargs={"skip_prepare_dataset": True},
         completion_only_loss=False,
         remove_unused_columns=False,
         output_dir=str(output_model),
