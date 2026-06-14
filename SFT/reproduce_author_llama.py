@@ -116,7 +116,7 @@ def main() -> int:
     load_project_env(REPO_ROOT / ".env")
     ensure_upstream_utils_on_path()
     from peft import LoraConfig
-    from authors_dataset_utils import prepare_train_data  # pylint: disable=import-error
+    from utils.dataset_utils import prepare_train_data  # pylint: disable=import-error
     from authors_model_utils import (  # pylint: disable=import-error
         compute_cycles_loss,
         compute_invalid_edges_loss,
