@@ -182,8 +182,6 @@ def main() -> int:
             formatting_func=lambda x: x["text"],
             args=training_arguments,
             processing_class=tokenizer,
-            packing=False,
-            max_seq_length=args.max_seq_length,
         )
     else:
 
@@ -265,8 +263,6 @@ def main() -> int:
             formatting_func=lambda x: x["text"],
             args=training_arguments,
             processing_class=tokenizer,
-            packing=False,
-            max_seq_length=args.max_seq_length,
         )
 
     print("Device: ", "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES") else "default")
