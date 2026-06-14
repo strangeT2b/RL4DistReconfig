@@ -126,7 +126,8 @@ def main() -> int:
         parse_available_lines,
         parse_open_lines,
     )
-    from trl import SFTConfig, SFTTrainer
+    from transformers import TrainingArguments
+    from trl import SFTTrainer
 
     args = parse_args()
     configure_wandb(args)
@@ -155,9 +156,7 @@ def main() -> int:
         task_type="CAUSAL_LM",
     )
 
-    training_arguments = SFTConfig(
-        completion_only_loss=False,
-        remove_unused_columns=False,
+    training_arguments = TrainingArguments(
         output_dir=str(output_model),
         run_name=f"{Path(args.output_root).name}/{args.run_name}",
         per_device_train_batch_size=args.batch_size,
@@ -180,9 +179,11 @@ def main() -> int:
             model=model,
             train_dataset=train_dataset,
             peft_config=peft_config,
-            formatting_func=lambda x: x["text"],
+            dataset_text_field="text",
             args=training_arguments,
-            processing_class=tokenizer,
+            tokenizer=tokenizer,
+            packing=False,
+            max_seq_length=args.max_seq_length,
         )
     else:
 
@@ -261,9 +262,11 @@ def main() -> int:
             model=model,
             train_dataset=train_dataset,
             peft_config=peft_config,
-            formatting_func=lambda x: x["text"],
+            dataset_text_field="text",
             args=training_arguments,
-            processing_class=tokenizer,
+            tokenizer=tokenizer,
+            packing=False,
+            max_seq_length=args.max_seq_length,
         )
 
     print("Device: ", "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES") else "default")
