@@ -7,7 +7,7 @@ SAVE_STEPS="${SAVE_STEPS:-100}"
 MAX_STEPS="${MAX_STEPS:--1}"
 MODEL_ID="${MODEL_ID:-${LLAMA31_INSTRUCT_MODEL:-../models/meta-llama/Llama-3.1-8B-Instruct}}"
 
-CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-5} python SFT/reproduce_author_llama.py \
+CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-5} python SFT/train_llama.py \
   --data_path Dataset/Processed_xml/train_33_69_84_nodes_open_lines_xml.csv \
   --model_id "${MODEL_ID}" \
   --output_root runs/llama31_8b_instruct \

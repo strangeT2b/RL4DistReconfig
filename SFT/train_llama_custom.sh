@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 
 MODEL_ID="${MODEL_ID:-${LLAMA31_BASE_MODEL:-../models/meta-llama/Llama-3.1-8B}}"
 
-CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-5} python SFT/reproduce_author_llama.py \
+CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-5} python SFT/train_llama.py \
   --data_path Dataset/Processed/train_33_nodes.csv \
   --model_id "${MODEL_ID}" \
   --output_root runs/llama31_8b_instruct \
