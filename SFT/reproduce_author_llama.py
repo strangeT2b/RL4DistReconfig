@@ -181,7 +181,7 @@ def main() -> int:
             peft_config=peft_config,
             formatting_func=lambda x: x["text"],
             args=training_arguments,
-            tokenizer=tokenizer,
+            processing_class=tokenizer,
             packing=False,
             max_seq_length=args.max_seq_length,
         )
@@ -264,7 +264,7 @@ def main() -> int:
             peft_config=peft_config,
             formatting_func=lambda x: x["text"],
             args=training_arguments,
-            tokenizer=tokenizer,
+            processing_class=tokenizer,
             packing=False,
             max_seq_length=args.max_seq_length,
         )
