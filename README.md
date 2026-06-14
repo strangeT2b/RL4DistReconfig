@@ -42,7 +42,7 @@ To generate XML-formatted CSVs from raw samples:
 bash Dataset/build_xml_processed_from_unprocessed.sh
 
 # Full XML (with node voltages and system loss)
-OUTPUT_XML_FORMAT=full_xml OUTPUT_NAME=train_33_69_84_nodes_full_xml \
+OUTPUT_MODE=full_output OUTPUT_NAME=train_33_69_84_nodes_full_xml \
 bash Dataset/build_xml_processed_from_unprocessed.sh
 ```
 

@@ -19,16 +19,16 @@ set -euo pipefail
 #   OUTPUT_NAME=train_33_69_84_nodes_full_xml \
 #   bash Dataset/build_xml_processed_from_unprocessed.sh
 
-BUS_SYSTEMS="${BUS_SYSTEMS:-33,69,84}"
+BUS_SYSTEMS="${BUS_SYSTEMS:-33 69 84}"
 UNPROCESSED_DIR="${UNPROCESSED_DIR:-Dataset/Unprocessed}"
 OUTPUT_DIR="${OUTPUT_DIR:-Dataset/Processed_xml}"
 OUTPUT_NAME="${OUTPUT_NAME:-train_33_69_84_nodes_open_lines_xml}"
-OUTPUT_XML_FORMAT="${OUTPUT_XML_FORMAT:-open_lines}"
+OUTPUT_MODE="${OUTPUT_MODE:-open_lines}"
 
 mkdir -p "${OUTPUT_DIR}"
 
 python Dataset/build_xml_processed_from_unprocessed.py \
-  --bus_systems "${BUS_SYSTEMS}" \
+  --bus_systems ${BUS_SYSTEMS} \
   --unprocessed_dir "${UNPROCESSED_DIR}" \
   --output_csv "${OUTPUT_DIR}/${OUTPUT_NAME}.csv" \
-  --output_xml_format "${OUTPUT_XML_FORMAT}"
+  --output_mode "${OUTPUT_MODE}"
