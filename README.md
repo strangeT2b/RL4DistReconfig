@@ -36,7 +36,17 @@ Preprocessed datasets are provided under `Dataset/verl/` as Parquet files:
 | `train_33_69_84_nodes_open_lines_xml/` | Open-lines XML format |
 | `train_33_69_84_nodes_full_xml/` | Full XML format with voltages and loss |
 
-To regenerate datasets from CSV files, use:
+To generate XML-formatted CSVs from raw samples:
+```bash
+# Open-lines XML
+bash Dataset/build_xml_processed_from_unprocessed.sh
+
+# Full XML (with node voltages and system loss)
+OUTPUT_XML_FORMAT=full_xml OUTPUT_NAME=train_33_69_84_nodes_full_xml \
+bash Dataset/build_xml_processed_from_unprocessed.sh
+```
+
+To convert CSVs to veRL Parquet format:
 ```bash
 python RL/verl/prepare_verl_data.py --data_path <input.csv> --output_dir <output_dir>
 ```
