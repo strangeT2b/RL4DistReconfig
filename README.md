@@ -92,8 +92,6 @@ for the complete list.
 bash Eval/eval_xml_lora.sh
 ```
 
-Set `SIM_LOSS=1 GT_SIM=1` to additionally compute pandapower-based loss metrics.
-
 ---
 
 ## Repository Structure

@@ -26,8 +26,6 @@ TENSOR_PARALLEL_SIZE="${TENSOR_PARALLEL_SIZE:-1}"
 GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.9}"
 DTYPE="${DTYPE:-auto}"
 SAVE_HARD_SAMPLES="${SAVE_HARD_SAMPLES:-1}"
-SIM_LOSS="${SIM_LOSS:-0}"
-GT_SIM="${GT_SIM:-0}"
 
 CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-2,3} python Eval/eval_xml_lora.py \
   --data_path "${DATA_PATH}" \
@@ -48,6 +46,4 @@ CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-2,3} python Eval/eval_xml_lora.py \
   --tensor_parallel_size "${TENSOR_PARALLEL_SIZE}" \
   --gpu_memory_utilization "${GPU_MEMORY_UTILIZATION}" \
   --dtype "${DTYPE}" \
-  --save_hard_samples "${SAVE_HARD_SAMPLES}" \
-  --sim_loss "${SIM_LOSS}" \
-  --gt_sim "${GT_SIM}"
+  --save_hard_samples "${SAVE_HARD_SAMPLES}"
