@@ -23,6 +23,11 @@ pip install accelerate bitsandbytes trl
 
 ## Datasets
 
+The network configuration datasets originate from
+[grid-datasets](https://github.com/panaschristou/grid-datasets).
+Download the CSV files and place them under `Dataset/` before running the
+preprocessing scripts.
+
 Preprocessed datasets are provided under `Dataset/verl/` as Parquet files:
 
 | Dataset | Description |
