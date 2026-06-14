@@ -27,7 +27,7 @@ if str(REPO_ROOT) not in sys.path:
 from utils.config_utils import load_project_env  # noqa: E402
 from utils.prompt_format_utils import format_sft_text  # noqa: E402
 
-UPSTREAM_UTILS_DIR = REPO_ROOT / "LLM4DistReconfig" / "Dataset-Notebooks" / "utils"
+UPSTREAM_UTILS_DIR = REPO_ROOT / "utils"
 
 
 def ensure_upstream_utils_on_path() -> None:
@@ -116,8 +116,8 @@ def main() -> int:
     load_project_env(REPO_ROOT / ".env")
     ensure_upstream_utils_on_path()
     from peft import LoraConfig
-    from dataset_utils import prepare_train_data  # pylint: disable=import-error
-    from model_utils import (  # pylint: disable=import-error
+    from authors_dataset_utils import prepare_train_data  # pylint: disable=import-error
+    from authors_model_utils import (  # pylint: disable=import-error
         compute_cycles_loss,
         compute_invalid_edges_loss,
         compute_subgraphs_loss,
@@ -135,7 +135,7 @@ def main() -> int:
     output_model.mkdir(parents=True, exist_ok=True)
 
     print("Training configurations:\n", args)
-    print("Using upstream utils:", UPSTREAM_UTILS_DIR)
+    print("Using upstream utils (from utils/):", UPSTREAM_UTILS_DIR)
     print("Local reproduction mode: skipping login, merge, generation, and push_to_hub.")
 
     train_dataset, validation_dataset, test_dataset = prepare_train_data(args.data_path)
