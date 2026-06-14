@@ -60,11 +60,11 @@ python RL/verl/prepare_verl_data.py --data_path <input.csv> --output_dir <output
 Train the base model on XML-formatted examples:
 
 ```bash
-# Llama-3.1-8B-Instruct with custom loss
-bash SFT/reproduce_author_llama31_custom.sh
+# Standard CE loss
+bash SFT/train_llama_ce.sh
 
-# Llama-3.1-8B-Instruct with standard CE loss
-bash SFT/reproduce_author_llama31_instruct.sh
+# Custom graph-penalty loss
+bash SFT/train_llama_custom.sh
 ```
 
 Configure paths, hyperparameters, and LoRA settings inside each script.
