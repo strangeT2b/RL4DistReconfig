@@ -117,11 +117,11 @@ def main() -> int:
     ensure_upstream_utils_on_path()
     from peft import LoraConfig
     from utils.dataset_utils import prepare_train_data  # pylint: disable=import-error
-    from authors_model_utils import (  # pylint: disable=import-error
+    from utils.model_utils import get_model_and_tokenizer_qlora
+    from utils.metrics_utils import (  # pylint: disable=import-error
         compute_cycles_loss,
         compute_invalid_edges_loss,
         compute_subgraphs_loss,
-        get_model_and_tokenizer,
         get_output_graph_edges,
         parse_available_lines,
         parse_open_lines,
@@ -146,7 +146,7 @@ def main() -> int:
     print(validation_dataset)
     print(test_dataset)
 
-    model, tokenizer = get_model_and_tokenizer(args.model_id)
+    model, tokenizer = get_model_and_tokenizer_qlora(args.model_id)
 
     peft_config = LoraConfig(
         r=8,
