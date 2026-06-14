@@ -127,7 +127,7 @@ def main() -> int:
         parse_open_lines,
     )
     from transformers import TrainingArguments
-    from trl import SFTTrainer
+    from trl import SFTConfig, SFTTrainer
 
     args = parse_args()
     configure_wandb(args)
@@ -156,7 +156,7 @@ def main() -> int:
         task_type="CAUSAL_LM",
     )
 
-    training_arguments = TrainingArguments(
+    training_arguments = SFTConfig(\n        dataset_kwargs=dict(skip_prepare_dataset=True),\n        completion_only_loss=False,
         output_dir=str(output_model),
         run_name=f"{Path(args.output_root).name}/{args.run_name}",
         per_device_train_batch_size=args.batch_size,
