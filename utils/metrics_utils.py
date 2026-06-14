@@ -6,7 +6,6 @@ import ast
 import csv
 import re
 
-from utils.generation_utils import extract_output_data
 
 
 # ---------------------------------------------------------------------------
@@ -296,12 +295,6 @@ def extract_metrics(available_lines, reformatted_response):
     return num_nodes, generated_open_lines, generated_node_voltages, system_loss
 
 
-def parse_correct_output(correct_output):
-    correct_data = extract_output_data(correct_output)
-    correct_open_lines = correct_data["Open Lines"]
-    correct_generated_lines = correct_data["Node Voltages"]
-    correct_system_loss = correct_data["System Loss"]
-    return correct_open_lines, correct_generated_lines, correct_system_loss
 
 
 # ---------------------------------------------------------------------------
