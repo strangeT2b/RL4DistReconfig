@@ -158,6 +158,7 @@ def main() -> int:
     training_arguments = SFTConfig(
         dataset_kwargs={"skip_prepare_dataset": True},
         completion_only_loss=False,
+        remove_unused_columns=False,
         output_dir=str(output_model),
         run_name=f"{Path(args.output_root).name}/{args.run_name}",
         per_device_train_batch_size=args.batch_size,
