@@ -2,7 +2,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-source scripts/env_cache_disk2.sh
 
 # Merge a selected LoRA adapter into a full model for veRL or standalone inference.
 # Usage:

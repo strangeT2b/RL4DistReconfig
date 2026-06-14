@@ -2,7 +2,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
-source scripts/env_cache_disk2.sh
 
 # veRL GRPO run starting from the merged Llama-3.1-Instruct SFT checkpoint.
 # Usage:

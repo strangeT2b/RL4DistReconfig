@@ -2,7 +2,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-source scripts/env_cache_disk2.sh
 
 MODEL_ID="${MODEL_ID:-${LLAMA31_BASE_MODEL:-../models/meta-llama/Llama-3.1-8B}}"
 

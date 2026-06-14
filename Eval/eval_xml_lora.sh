@@ -2,7 +2,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-source scripts/env_cache_disk2.sh
 
 # Evaluate XML-only Open Lines outputs with vLLM.
 # Defaults target the Llama-3.1-8B-Instruct XML SFT merged checkpoint.

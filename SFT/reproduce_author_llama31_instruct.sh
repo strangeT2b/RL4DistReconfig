@@ -2,7 +2,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-source scripts/env_cache_disk2.sh
 
 SAVE_STEPS="${SAVE_STEPS:-100}"
 MAX_STEPS="${MAX_STEPS:--1}"

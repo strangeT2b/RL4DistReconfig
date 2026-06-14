@@ -2,7 +2,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
-source scripts/env_cache_disk2.sh
 
 # Prepare model-agnostic veRL parquet data.  Usage:
 #   bash RL/verl/prepare_verl_data.sh
