@@ -1,0 +1,14 @@
+Rewrite only the reasoning for the existing final answer block.
+
+The final answer block must remain exactly unchanged. Improve the reasoning so it concretely supports the same open-line choices using radiality, load-transfer, weak-voltage/heavy-load paths, and tie-loop branch-exchange tradeoffs. Do not fabricate exact power-flow numbers.
+
+## Problem
+{problem}
+
+## Previous Trace
+{trace}
+
+## Feedback
+{feedback}
+
+Return exactly one <think> block followed by the unchanged <answer> block.

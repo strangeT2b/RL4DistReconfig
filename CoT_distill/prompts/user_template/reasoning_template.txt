@@ -1,0 +1,4 @@
+Generate one long-CoT solution for the current problem.
+
+{few_shot_examples}## Current Problem
+{problem}

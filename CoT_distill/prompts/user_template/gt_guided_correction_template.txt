@@ -1,0 +1,16 @@
+Rewrite the previous long-CoT trace into a higher-quality corrected solution trace.
+
+You are given the final answer block that the corrected trace must preserve. Use it only to make the reasoning and final answer consistent. Do not mention how this answer block was selected, process details, scoring, tooling, or external feedback. The reasoning should read as if you rechecked the topology yourself and corrected the weak part of the previous candidate.
+
+Keep the reasoning concrete and problem-specific. Explain why the final open-line set is better than the previous candidate in terms of radiality, load transfer, weak-voltage/heavy-load paths, and tie-loop branch-exchange tradeoffs. Do not fabricate exact power-flow numbers in the reasoning.
+
+## Problem
+{problem}
+
+## Previous Trace
+{trace}
+
+## Final Answer Block To Preserve
+{solution}
+
+Return exactly one <think> block followed by one <answer> block. The <answer> block must exactly match the final answer block above.

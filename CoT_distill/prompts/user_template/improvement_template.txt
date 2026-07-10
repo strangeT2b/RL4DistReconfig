@@ -1,0 +1,10 @@
+Repair the previous long-CoT trace using the diagnostic feedback.
+
+## Problem
+{problem}
+
+## Previous Trace
+{trace}
+
+## Feedback
+{feedback}

@@ -1,0 +1,23 @@
+Evaluate this generated long-CoT trace.
+
+The reasoning section is provided inside <reasoning_trace> tags. Treat that section as the generated chain-of-thought to grade. The final XML answer is provided separately inside <final_answer_block> tags.
+
+## Problem
+{problem}
+
+## Generated Trace For Evaluation
+{trace}
+
+## Automated Check Summary
+{local_summary}
+
+Return only this JSON object, with each score in [0.0, 1.0]:
+{{
+  "logic_relevance": 0.0,
+  "uses_problem_data": 0.0,
+  "reasoning_coherence": 0.0,
+  "key_factors": 0.0,
+  "no_gt_leakage": 0.0,
+  "length_control": 0.0,
+  "feedback": "..."
+}}

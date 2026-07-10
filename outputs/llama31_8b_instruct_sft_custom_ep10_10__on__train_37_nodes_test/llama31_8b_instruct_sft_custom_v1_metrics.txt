@@ -1,0 +1,47 @@
+---- Evaluation Metrics ----
+
+[Run]
+  Split: test
+  Total samples: 1000
+  Improper (parse failed): 589
+  Proper: 411
+  Avg inference time (s): 0.4449
+
+[Graph Validity]
+  Valid: 38  (9.2% of proper)
+  Invalid: 373
+  Avg cycles: 14.6229
+  Avg invalid edges: 0.7226
+  Avg subgraphs: 0.1265
+
+[Model Sim (on valid outputs)]
+  Converged: 38 / 38
+  Loss improved vs original: 0
+  Loss unchanged vs original (model echoed default): 2
+  Loss worsened vs original: 36
+  Sim failed: 0
+  Avg original loss (MW): 0.0001
+  Avg model new loss (MW): 0.0002
+  Avg improvement vs original: -43.01%
+
+[GT Sim (re-simulated on same simulator)]
+  Converged: 411 / 411
+  Failed: 0
+  Avg GT sim loss (MW): 0.0002
+
+[GT Match (undirected)]
+  Exact match (all proper): 0 / 411  (0.0%)
+  Mean IoU (all proper): 0.3226
+  Exact match (valid only): 0 / 38  (0.0%)
+  Mean IoU (valid only): 0.4944
+  Hard samples (gen != GT): 411 / 411  (100.0%)
+
+[Model vs GT (both sims converged)]
+  Both-converged samples: 38
+  Model better than GT: 1  (2.6%)
+  Model matches GT loss: 0
+  Model worse than GT: 37  (97.4%)
+  Avg original loss (MW): 0.0001
+  Avg model new loss (MW): 0.0002
+  Avg GT loss (MW): 0.0001
+  Mean model_vs_gt_pct (>0 = better than GT): -43.08%

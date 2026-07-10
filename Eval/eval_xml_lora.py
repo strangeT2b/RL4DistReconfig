@@ -14,9 +14,11 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from utils.dataset_utils import prepare_train_data  # noqa: E402
 from utils.metrics_utils import (  # noqa: E402
+    compute_edge_precision_recall,
     compute_gt_match,
     get_number_of_nodes,
     graph_penalties_from_open_lines,
+    parse_available_lines,
     parse_open_lines_full_xml,
     parse_open_lines_xml,
     prep_csv,
@@ -34,8 +36,19 @@ COLUMNS: list[str] = [
     "gen_open_lines",
     "gt_open_lines",
     "is_valid",
+    "model_sim_converged",
+    "model_sim_original_loss_mw",
+    "model_sim_new_loss_mw",
+    "model_sim_improvement_pct",
+    "model_sim_failure_reason",
+    "gt_sim_converged",
+    "gt_sim_loss_mw",
+    "gt_sim_failure_reason",
     "gt_exact_match",
     "gt_iou",
+    "gt_precision",
+    "gt_recall",
+    "model_vs_gt_pct",
 ]
 
 
@@ -66,7 +79,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dtype", default="auto")
     parser.add_argument("--save_hard_samples", type=int, default=1,
                         help="Save hard samples (is_valid=0 or gen != GT) as a separate CSV.")
+    parser.add_argument("--sim_loss", type=int, default=1,
+                        help="Run pandapower simulator on valid model outputs.")
+    parser.add_argument("--gt_sim", type=int, default=1,
+                        help="Re-simulate GT open lines so GT loss is comparable to model loss.")
     return parser.parse_args()
+
+
+def _run_sim(prompt: str, open_lines):
+    try:
+        from RL.simulator.grid_simulator import evaluate_reconfig
+        result = evaluate_reconfig(prompt, list(open_lines))
+        return True, result
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
+
+def _fmt_pct(x):
+    return f"{x:+.2f}%" if x is not None else "n/a"
 
 
 def main() -> int:
@@ -129,10 +159,21 @@ def main() -> int:
     rows: list[dict] = []
     counts = {
         "total": len(sample_indices),
-        "improper": 0,
+        "no_response": 0,
         "proper": 0,
         "valid": 0,
         "invalid": 0,
+        "model_sim_converged": 0,
+        "model_sim_improved": 0,
+        "model_sim_unchanged": 0,
+        "model_sim_worsened": 0,
+        "model_sim_failed": 0,
+        "gt_sim_converged": 0,
+        "gt_sim_failed": 0,
+        "both_converged": 0,
+        "better_than_gt": 0,
+        "matches_gt_loss": 0,
+        "worse_than_gt": 0,
         "gt_exact_match": 0,
     }
     sums = {
@@ -140,7 +181,17 @@ def main() -> int:
         "invalid_edges": 0.0,
         "subgraphs": 0.0,
         "inference_time": 0.0,
+        "model_sim_original_loss": 0.0,
+        "model_sim_new_loss": 0.0,
+        "model_sim_improvement_pct": 0.0,
+        "gt_sim_loss": 0.0,
+        "model_vs_gt_pct": 0.0,
         "gt_iou": 0.0,
+        "gt_precision": 0.0,
+        "gt_recall": 0.0,
+        "both_orig_loss": 0.0,
+        "both_model_loss": 0.0,
+        "both_gt_loss": 0.0,
     }
 
     for start in range(0, len(prompts), args.batch_size):
@@ -164,7 +215,7 @@ def main() -> int:
             sums["inference_time"] += per_sample_time
 
             if not gen_open_lines or not gt_open:
-                counts["improper"] += 1
+                counts["no_response"] += 1
                 continue
 
             counts["proper"] += 1
@@ -188,7 +239,6 @@ def main() -> int:
             else:
                 counts["invalid"] += 1
 
-            gt_exact, gt_iou = compute_gt_match(gen_open_lines, gt_open)
             row: dict = {
                 "dataset_index": dataset_index,
                 "prompt": prompt,
@@ -197,12 +247,102 @@ def main() -> int:
                 "gen_open_lines": gen_open_lines,
                 "gt_open_lines": gt_open,
                 "is_valid": is_valid,
-                "gt_exact_match": int(gt_exact),
-                "gt_iou": f"{gt_iou:.6f}",
+                "model_sim_failure_reason": "not_run",
+                "gt_sim_failure_reason": "not_run",
             }
+
+            model_sim_new_loss = None
+            model_sim_orig_loss = None
+            if args.sim_loss:
+                if not is_valid:
+                    row["model_sim_failure_reason"] = "not_run_graph_invalid"
+                else:
+                    ok, res = _run_sim(raw_prompt, gen_open_lines)
+                    if not ok:
+                        counts["model_sim_failed"] += 1
+                        row["model_sim_converged"] = 0
+                        row["model_sim_failure_reason"] = res
+                    else:
+                        conv = bool(res.get("converged", False))
+                        orig_raw = res.get("original_loss_mw")
+                        new_raw = res.get("system_loss")
+                        orig_loss = float(orig_raw) if orig_raw is not None else -1.0
+                        new_loss = float(new_raw) if new_raw is not None else -1.0
+                        row["model_sim_converged"] = int(conv)
+                        if conv and orig_loss > 0:
+                            counts["model_sim_converged"] += 1
+                            impr_pct = (orig_loss - new_loss) / orig_loss * 100
+                            row["model_sim_original_loss_mw"] = f"{orig_loss:.10g}"
+                            row["model_sim_new_loss_mw"] = f"{new_loss:.10g}"
+                            row["model_sim_improvement_pct"] = f"{impr_pct:.6f}"
+                            row["model_sim_failure_reason"] = ""
+                            sums["model_sim_original_loss"] += orig_loss
+                            sums["model_sim_new_loss"] += new_loss
+                            sums["model_sim_improvement_pct"] += impr_pct
+                            model_sim_new_loss = new_loss
+                            model_sim_orig_loss = orig_loss
+                            if impr_pct > 0:
+                                counts["model_sim_improved"] += 1
+                            elif impr_pct < 0:
+                                counts["model_sim_worsened"] += 1
+                            else:
+                                counts["model_sim_unchanged"] += 1
+                        else:
+                            counts["model_sim_failed"] += 1
+                            row["model_sim_failure_reason"] = (
+                                "not_converged" if not conv else "missing_original_loss"
+                            )
+
+            gt_sim_new_loss = None
+            if args.gt_sim:
+                ok, res = _run_sim(raw_prompt, gt_open)
+                if not ok:
+                    counts["gt_sim_failed"] += 1
+                    row["gt_sim_converged"] = 0
+                    row["gt_sim_failure_reason"] = res
+                else:
+                    conv = bool(res.get("converged", False))
+                    new_raw = res.get("system_loss")
+                    new_loss = float(new_raw) if new_raw is not None else -1.0
+                    row["gt_sim_converged"] = int(conv)
+                    if conv and new_loss >= 0:
+                        row["gt_sim_loss_mw"] = f"{new_loss:.10g}"
+                        row["gt_sim_failure_reason"] = ""
+                        counts["gt_sim_converged"] += 1
+                        sums["gt_sim_loss"] += new_loss
+                        gt_sim_new_loss = new_loss
+                    else:
+                        counts["gt_sim_failed"] += 1
+                        row["gt_sim_failure_reason"] = "not_converged"
+
+            gt_exact, gt_iou = compute_gt_match(gen_open_lines, gt_open)
+            gt_precision, gt_recall = compute_edge_precision_recall(gen_open_lines, gt_open)
+            row["gt_exact_match"] = int(gt_exact)
+            row["gt_iou"] = f"{gt_iou:.6f}"
+            row["gt_precision"] = f"{gt_precision:.6f}"
+            row["gt_recall"] = f"{gt_recall:.6f}"
             if gt_exact == 1.0:
                 counts["gt_exact_match"] += 1
             sums["gt_iou"] += gt_iou
+            sums["gt_precision"] += gt_precision
+            sums["gt_recall"] += gt_recall
+
+            if model_sim_new_loss is not None and gt_sim_new_loss is not None and gt_sim_new_loss > 0:
+                model_vs_gt = (gt_sim_new_loss - model_sim_new_loss) / gt_sim_new_loss * 100
+                row["model_vs_gt_pct"] = f"{model_vs_gt:.6f}"
+                counts["both_converged"] += 1
+                sums["model_vs_gt_pct"] += model_vs_gt
+                if model_sim_orig_loss is not None:
+                    sums["both_orig_loss"] += model_sim_orig_loss
+                sums["both_model_loss"] += model_sim_new_loss
+                sums["both_gt_loss"] += gt_sim_new_loss
+                eps = 1e-6
+                if model_vs_gt > eps:
+                    counts["better_than_gt"] += 1
+                elif model_vs_gt < -eps:
+                    counts["worse_than_gt"] += 1
+                else:
+                    counts["matches_gt_loss"] += 1
 
             rows.append(row)
 
@@ -220,12 +360,14 @@ def main() -> int:
     valid_n = max(len(valid_rows), 1)
     valid_exact = sum(1 for r in valid_rows if r.get("gt_exact_match") == 1)
     valid_iou = sum(float(r.get("gt_iou") or 0.0) for r in valid_rows) / valid_n
+    valid_precision = sum(float(r.get("gt_precision") or 0.0) for r in valid_rows) / valid_n
+    valid_recall = sum(float(r.get("gt_recall") or 0.0) for r in valid_rows) / valid_n
 
     sections: list[tuple[str, list[tuple[str, str]]]] = []
     sections.append(("Run", [
         ("Split", args.split),
         ("Total samples", str(counts["total"])),
-        ("Improper (XML parse failed)", str(counts["improper"])),
+        ("Improper (XML parse failed)", str(counts["no_response"])),
         ("Proper XML", str(counts["proper"])),
         ("Avg inference time (s)", f"{avg_inference:.4f}"),
     ]))
@@ -237,18 +379,68 @@ def main() -> int:
         ("Avg subgraphs", f"{avg_subgraphs:.4f}"),
     ]))
 
+    if args.sim_loss:
+        msc = max(counts["model_sim_converged"], 1)
+        sections.append(("Model Sim (on valid XML outputs)", [
+            ("Converged", f"{counts['model_sim_converged']} / {counts['valid']}"),
+            ("Loss improved vs original", str(counts["model_sim_improved"])),
+            ("Loss unchanged vs original", str(counts["model_sim_unchanged"])),
+            ("Loss worsened vs original", str(counts["model_sim_worsened"])),
+            ("Sim failed", str(counts["model_sim_failed"])),
+            ("Avg original loss (MW)", f"{sums['model_sim_original_loss']/msc:.4f}"
+             if counts["model_sim_converged"] else "n/a"),
+            ("Avg model new loss (MW)", f"{sums['model_sim_new_loss']/msc:.4f}"
+             if counts["model_sim_converged"] else "n/a"),
+            ("Avg improvement vs original",
+             _fmt_pct(sums["model_sim_improvement_pct"]/msc)
+             if counts["model_sim_converged"] else "n/a"),
+        ]))
+
+    if args.gt_sim:
+        gsc = max(counts["gt_sim_converged"], 1)
+        sections.append(("GT Sim (re-simulated on same simulator)", [
+            ("Converged", f"{counts['gt_sim_converged']} / {counts['proper']}"),
+            ("Failed", str(counts["gt_sim_failed"])),
+            ("Avg GT sim loss (MW)", f"{sums['gt_sim_loss']/gsc:.4f}"
+             if counts["gt_sim_converged"] else "n/a"),
+        ]))
+
     hard_count = counts["proper"] - counts["gt_exact_match"]
     sections.append(("GT Match (undirected)", [
         ("Exact match (all proper)",
          f"{counts['gt_exact_match']} / {counts['proper']}  "
          f"({counts['gt_exact_match']/proper:.1%})"),
         ("Mean IoU (all proper)", f"{sums['gt_iou']/proper:.4f}"),
+        ("Mean precision (all proper)", f"{sums['gt_precision']/proper:.4f}"),
+        ("Mean recall (all proper)", f"{sums['gt_recall']/proper:.4f}"),
         ("Exact match (valid only)",
          f"{valid_exact} / {len(valid_rows)}  ({valid_exact/valid_n:.1%})"),
         ("Mean IoU (valid only)", f"{valid_iou:.4f}"),
+        ("Mean precision (valid only)", f"{valid_precision:.4f}"),
+        ("Mean recall (valid only)", f"{valid_recall:.4f}"),
         ("Hard samples (gen != GT)",
          f"{hard_count} / {counts['proper']}  ({hard_count/proper:.1%})"),
     ]))
+
+    if args.sim_loss and args.gt_sim:
+        bn = max(counts["both_converged"], 1)
+        has_both = counts["both_converged"] > 0
+        sections.append(("Model vs GT (both sims converged)", [
+            ("Both-converged samples", str(counts["both_converged"])),
+            ("Model better than GT", f"{counts['better_than_gt']}  "
+             f"({counts['better_than_gt']/bn:.1%})"),
+            ("Model matches GT loss", str(counts["matches_gt_loss"])),
+            ("Model worse than GT", f"{counts['worse_than_gt']}  "
+             f"({counts['worse_than_gt']/bn:.1%})"),
+            ("Avg original loss (MW)",
+             f"{sums['both_orig_loss']/bn:.4f}" if has_both else "n/a"),
+            ("Avg model new loss (MW)",
+             f"{sums['both_model_loss']/bn:.4f}" if has_both else "n/a"),
+            ("Avg GT loss (MW)",
+             f"{sums['both_gt_loss']/bn:.4f}" if has_both else "n/a"),
+            ("Mean model_vs_gt_pct (>0 = better than GT)",
+             _fmt_pct(sums["model_vs_gt_pct"]/bn) if has_both else "n/a"),
+        ]))
 
     write_to_txt(filename_txt, sections)
 

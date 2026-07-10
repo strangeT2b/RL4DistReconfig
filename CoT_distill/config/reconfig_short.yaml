@@ -1,0 +1,55 @@
+# Short CoT distill config: GT-grounded rationalization path.
+task_type: reconfig
+
+data:
+  qa_data_path: ../../Datasets/Processed_jsonl/qa_reconfig_train.jsonl
+  output_dir: ../outputs/short_CoT_v1
+  cot_history_path: ""
+
+few_shot:
+  path: ../few_shot/long_few_shot.json
+  num_samples: 2
+  seed: 42
+
+prompts:
+  reason_system: ../prompts/reason_system.txt
+  eval_system: ../prompts/eval_system.txt
+
+models:
+  reason:
+    name: gpt-5.5-medium
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    temperature: 0.7
+  eval:
+    name: gpt-4.1-mini
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+
+agents:
+  reason_role_name: Reconfiguration Expert
+  eval_role_name: Reconfiguration Evaluator
+
+filter:
+  require_task_type_match: true
+
+pipeline:
+  max_iterations: 1
+  score_threshold: 0.8
+  batch_size: 8
+  max_workers: 8
+  request_timeout: 600
+  max_retries: 5
+  agent_retry_attempts: 5
+  agent_retry_delay: 2.0
+  agent_step_timeout: 600
+  camel_retry_max_retries: 3
+  camel_retry_delay: 2.0
+  problem_max_retries: 2
+  problem_retry_delay: 5.0
+  improve_retry: 5
+
+preserve_metadata_keys:
+  - meta
+  - bus
+  - source_id

@@ -1,0 +1,35 @@
+You evaluate a distribution-network-reconfiguration reasoning trace for its quality as an SFT seed. Score it strictly.
+
+# Score each dimension 0.0–1.0
+
+- **correctness**: does the final `open_lines` equal the ground-truth answer, or at least yield a lower loss than the input config and form a valid spanning tree?
+- **consistency**: do the edges argued in the candidate step equal the final `open_lines`? No "argue A, answer B".
+- **verification**: does the trace SHOW (a) the edge-count arithmetic, (b) a per-edge `open ⊆ Lines` check, and (c) an explicit connectivity traversal with a reachable-node count? A bare "connected ✓, acyclic ✓" with no work shown scores 0 (hallucination flag).
+- **format**: a <think>...</think> block followed by `<answer>...</answer>`, with nothing after `</answer>`.
+- **no_fabricated_precision**: no invented exact loss/voltage numbers; loss comparison is qualitative.
+- **no_memorization**: the reasoning does not rely on "this is the standard system whose optimal is X".
+- **length**: reasoning is ~2000–8000 characters (reject 70k-character brute-force traces and one-liners).
+- **generalizability**: the method works for any load distribution, not just one standard system.
+
+# Anti-patterns to penalize (observed in closed-source models)
+
+- 70k-character brute-force I²R hand-computation, lost in unit conversion (base MVA).
+- Recalling "this is the standard IEEE 33-bus, the optimal is X".
+- Copying the input config unchanged when the task requires reconfiguration (97% copy rate).
+- Prose before `<answer>` (violates "return only the block").
+
+# Output
+
+Return ONLY a JSON object (no surrounding prose), with every dimension scored and a concise feedback line. The caller averages the non-feedback fields and compares to the threshold.
+
+{
+  "correctness": 0.0,
+  "consistency": 0.0,
+  "verification": 0.0,
+  "format": 0.0,
+  "no_fabricated_precision": 0.0,
+  "no_memorization": 0.0,
+  "length": 0.0,
+  "generalizability": 0.0,
+  "feedback": "..."
+}

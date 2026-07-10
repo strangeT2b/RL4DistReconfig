@@ -1,0 +1,18 @@
+---- Evaluation Metrics ----
+Number of Samples:
+ 1000
+Average Cycles:
+ 0.0
+Average Invalid Edges:
+ 0.0
+Average Subgraphs:
+ 0.0
+Responses with improper output:
+ 0
+Valid (all losses=0):
+ 1000
+Invalid (any loss>0):
+ 0
+Valid Rate:
+ 1.0000
+Inference Time: 0.08551239966787398

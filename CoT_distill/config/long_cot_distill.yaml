@@ -1,0 +1,86 @@
+# Long CoT distillation v1.
+# No-GT forward generation with cross-network few-shot examples, local hidden
+# validity/IoU checks, reasoning-quality evaluation, and no-GT repair feedback.
+data:
+  qa_data_path: ../../Dataset/Processed_jsonl/33_69_84_nodes_washed/train_washed.jsonl
+  output_dir: ../outputs/long_CoT
+  cot_history_path: ""
+
+few_shot:
+  path: ../few_shot/long_few_shot.json
+  num_samples: 2
+  seed: 42
+
+prompts:
+  reason_system: ../prompts/system_msg/long_reason_system.txt
+  eval_system: ../prompts/system_msg/long_eval_system.txt
+  reflexion_system: ../prompts/system_msg/long_reflexion_system.txt
+  reasoning_template: ../prompts/user_template/reasoning_template.txt
+  quality_eval_template: ../prompts/user_template/quality_eval_template.txt
+  improvement_template: ../prompts/user_template/improvement_template.txt
+  reflexion_template: ../prompts/user_template/reflexion_template.txt
+  reflexion_continue_template: ../prompts/user_template/reflexion_continue_template.txt
+  polish_template: ../prompts/user_template/polish_template.txt
+  gt_guided_correction_template: ../prompts/user_template/gt_guided_correction_template.txt
+
+models:
+  reason:
+    name: gpt-5.5-high
+    base_url: ""
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    temperature: 0.7
+    max_tokens: 4096
+  eval:
+    name: gpt-5.4-mini
+    base_url: ""
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    max_tokens: 1024
+  reflexion:
+    name: gpt-5.5-high
+    base_url: ""
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    temperature: 0.4
+    max_tokens: 512
+
+agents:
+  reason_role_name: Reconfiguration Expert
+  eval_role_name: Reconfiguration Evaluator
+  reflexion_role_name: Reconfiguration Reflection Agent
+
+pipeline:
+  use_reflexion: true
+  gt_correction:
+    enabled: false
+    min_iou: 0.5
+    min_recall: 0.6
+    require_valid: true
+    min_hit_by_bus:
+      "33": 4
+      "69": 4
+      "84": 10
+  max_iterations: 2
+  score_threshold: 0.75
+  min_iou_accept: 0.75
+  min_reasoning_quality_accept: 0.70
+  min_reasoning_quality_polish: 0.70
+  min_no_leak_accept: 0.99
+  batch_size: 8
+  max_workers: 8
+  request_timeout: 900
+  max_retries: 5
+  agent_retry_attempts: 5
+  agent_retry_delay: 2.0
+  agent_step_timeout: 900
+  camel_retry_max_retries: 3
+  camel_retry_delay: 2.0
+  problem_max_retries: 2
+  problem_retry_delay: 5.0
+  improve_retry: 5
+
+preserve_metadata_keys:
+  - meta
+  - bus
+  - source_id

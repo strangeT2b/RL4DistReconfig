@@ -1,0 +1,27 @@
+---- Evaluation Metrics ----
+
+[Run]
+  Split: test
+  Total samples: 10
+  Improper (parse failed): 0
+  Proper: 10
+  Avg inference time (s): 4.3361
+
+[Graph Validity]
+  Valid: 10  (100.0% of proper)
+  Invalid: 0
+  Avg cycles: 0.0000
+  Avg invalid edges: 0.0000
+  Avg subgraphs: 0.0000
+
+[GT Sim (re-simulated on same simulator)]
+  Converged: 10 / 10
+  Failed: 0
+  Avg GT sim loss (MW): 0.0217
+
+[GT Match (undirected)]
+  Exact match (all proper): 3 / 10  (30.0%)
+  Mean IoU (all proper): 0.7190
+  Exact match (valid only): 3 / 10  (30.0%)
+  Mean IoU (valid only): 0.7190
+  Hard samples (gen != GT): 7 / 10  (70.0%)

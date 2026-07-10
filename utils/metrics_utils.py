@@ -6,6 +6,7 @@ import ast
 import csv
 import re
 
+from utils.generation_utils import extract_output_data
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +77,59 @@ def parse_open_lines_xml(text: str):
     return _validate_edge_list(parsed)
 
 
+_FULL_XML_RE = re.compile(
+    r"<answer>\s*"
+    r"<open_lines>\s*(.*?)\s*</open_lines>\s*"
+    r"<node_voltages>\s*(.*?)\s*</node_voltages>\s*"
+    r"<system_loss>\s*(.*?)\s*</system_loss>\s*"
+    r"</answer>",
+    re.DOTALL,
+)
+_FULL_XML_TAGS = ("answer", "open_lines", "node_voltages", "system_loss")
+
+
+def _parse_full_xml_match(text: str):
+    """Return the full-XML regex match for `text`, or None if malformed.
+
+    Shared format gate used by both topology parsing and voltage/loss
+    extraction so they never disagree on what counts as well-formed.
+    Uses search (not anchored) so a leading reasoning/thinking block — e.g.
+    Qwen3's `<think>...</think>` emitted before <answer> — does not break
+    parsing. The required_tags check still rejects answers with duplicated
+    or missing tags.
+    """
+    if not text:
+        return None
+    for tag in _FULL_XML_TAGS:
+        if len(re.findall(fr"<{tag}>", text)) != 1 or len(re.findall(fr"</{tag}>", text)) != 1:
+            return None
+    return _FULL_XML_RE.search(text)
+
+
+def extract_full_xml_voltages_loss(text: str) -> tuple[list[float] | None, float | None]:
+    """Extract (node_voltages, system_loss) from a full-XML answer block.
+
+    Returns (None, None) if `text` is not a well-formed full-XML block (the
+    same gate as parse_open_lines_full_xml), so callers can pull these fields
+    only from candidates that already parsed successfully.
+    """
+    match = _parse_full_xml_match(text)
+    if match is None:
+        return None, None
+    try:
+        parsed_voltages = ast.literal_eval(match.group(2).strip())
+        system_loss = float(match.group(3).strip())
+    except (ValueError, SyntaxError):
+        return None, None
+    if not isinstance(parsed_voltages, list) or not parsed_voltages:
+        return None, None
+    try:
+        voltages = [float(value) for value in parsed_voltages]
+    except (TypeError, ValueError):
+        return None, None
+    return voltages, system_loss
+
+
 def parse_open_lines_full_xml(text: str):
     """Strictly parse full XML output and return its Open Lines.
 
@@ -89,24 +143,8 @@ def parse_open_lines_full_xml(text: str):
     Only Open Lines are returned because reward/eval compare topology. The
     remaining tags are required as a format gate for full-output XML ablations.
     """
-    if not text:
-        return []
-
-    required_tags = ("answer", "open_lines", "node_voltages", "system_loss")
-    for tag in required_tags:
-        if len(re.findall(fr"<{tag}>", text)) != 1 or len(re.findall(fr"</{tag}>", text)) != 1:
-            return []
-
-    pattern = re.compile(
-        r"^\s*<answer>\s*"
-        r"<open_lines>\s*(.*?)\s*</open_lines>\s*"
-        r"<node_voltages>\s*(.*?)\s*</node_voltages>\s*"
-        r"<system_loss>\s*(.*?)\s*</system_loss>\s*"
-        r"</answer>\s*$",
-        re.DOTALL,
-    )
-    match = pattern.match(text)
-    if not match:
+    match = _parse_full_xml_match(text)
+    if match is None:
         return []
 
     try:
@@ -221,6 +259,16 @@ def compute_gt_match(predicted_lines, correct_lines) -> tuple[float, float]:
     return exact, iou
 
 
+def compute_edge_precision_recall(predicted_lines, correct_lines) -> tuple[float, float]:
+    """Undirected edge precision/recall between predicted and GT open lines."""
+    p = _canonical_edge_set(predicted_lines)
+    g = _canonical_edge_set(correct_lines)
+    intersection = p & g
+    precision = len(intersection) / len(p) if p else 0.0
+    recall = len(intersection) / len(g) if g else 0.0
+    return precision, recall
+
+
 def graph_penalties(
     input_text: str, output_text: str, *, normalize: bool = False
 ) -> dict[str, float]:
@@ -295,6 +343,12 @@ def extract_metrics(available_lines, reformatted_response):
     return num_nodes, generated_open_lines, generated_node_voltages, system_loss
 
 
+def parse_correct_output(correct_output):
+    correct_data = extract_output_data(correct_output)
+    correct_open_lines = correct_data["Open Lines"]
+    correct_generated_lines = correct_data["Node Voltages"]
+    correct_system_loss = correct_data["System Loss"]
+    return correct_open_lines, correct_generated_lines, correct_system_loss
 
 
 # ---------------------------------------------------------------------------

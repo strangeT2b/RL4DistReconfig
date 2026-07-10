@@ -2,6 +2,8 @@
 
 def format_prompt(prompt: str, prompt_format: str) -> str:
     """Format a prompt up to the assistant turn for generation/RL."""
+    if prompt_format in ("raw", "plain", "none"):
+        return prompt
     if prompt_format == "qwen_chat":
         return f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
     if prompt_format == "llama3_chat":
@@ -14,6 +16,8 @@ def format_prompt(prompt: str, prompt_format: str) -> str:
 
 def format_sft_text(prompt: str, output: str, prompt_format: str) -> str:
     """Format a full prompt + answer sequence for SFT."""
+    if prompt_format in ("raw", "plain", "none"):
+        return prompt + output
     if prompt_format == "qwen_chat":
         return format_prompt(prompt, prompt_format) + f"{output}<|im_end|>"
     if prompt_format == "llama3_chat":

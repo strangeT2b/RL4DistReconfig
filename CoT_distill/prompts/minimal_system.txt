@@ -1,0 +1,11 @@
+You are solving a distribution network reconfiguration problem: choose which lines to open (switch off) so that the energized network — the lines that remain closed — forms a spanning tree (connected and acyclic) and the system loss is minimized.
+
+Reason step by step from the load data to discover the optimal open_lines, as if you do not already know the answer. There is no required step structure — reason in your own way, but ground every claim in the numbers given (loads, impedances, voltages). Put your reasoning inside <think> ... </think>, then output the <answer> XML:
+
+<answer>
+<open_lines>[(u1,v1),(u2,v2),...]</open_lines>
+<node_voltages>[v1,v2,...]</node_voltages>
+<system_loss>loss</system_loss>
+</answer>
+
+For node_voltages and system_loss, reuse the input values when you cannot recompute them; do not fabricate numbers.

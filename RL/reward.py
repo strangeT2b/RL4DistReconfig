@@ -51,10 +51,9 @@ def compute_reward(
     cycles_weight: float = 1.0,
     subgraphs_weight: float = 1.0,
     format_penalty_weight: float = 0.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """Legacy graph-only reward (kept for tests / backwards compatibility)."""
-    parts = dict(graph_penalties(prompt, response, normalize=normalize_penalties))
+    parts = dict(graph_penalties(prompt, response))
     parts["format_penalty"] = 0.0 if _has_full_format(response) else 1.0
 
     reward = -(
@@ -79,14 +78,13 @@ def compute_reward_full(
     sim_neg_cap: float = 0.10,
     sim_pos_cap: float = 0.20,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """Full layered reward (graph validity + simulator-derived improvement).
 
     Guarantees `valid_reward_min > invalid_reward_max` so the model cannot
     fall back to invalid configs to escape negative sim bonuses.
     """
-    parts = dict(graph_penalties(prompt, response, normalize=normalize_penalties))
+    parts = dict(graph_penalties(prompt, response))
     parts["format_penalty"] = 0.0 if _has_full_format(response) else 1.0
 
     is_valid = (
@@ -142,10 +140,9 @@ def compute_reward_valid_only(
     format_penalty_weight: float = 0.0,
     valid_base: float = 1.0,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """Only reward valid topology/format; no GT IoU and no simulator."""
-    parts = dict(graph_penalties(prompt, response, normalize=normalize_penalties))
+    parts = dict(graph_penalties(prompt, response))
     parts["format_penalty"] = 0.0 if _has_full_format(response) else 1.0
     is_valid = (
         parts["invalid_edges"] == 0.0
@@ -236,7 +233,6 @@ def compute_reward_xml_valid_only(
     format_penalty_weight: float = 0.0,
     valid_base: float = 1.0,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """XML-only graph validity reward for <answer><open_lines>...</open_lines></answer>."""
     return _compute_reward_xml_valid_only_with_parser(
@@ -250,7 +246,6 @@ def compute_reward_xml_valid_only(
         format_penalty_weight=format_penalty_weight,
         valid_base=valid_base,
         invalid_penalty_scale=invalid_penalty_scale,
-        normalize_penalties=normalize_penalties,
     )
 
 
@@ -266,10 +261,9 @@ def _compute_reward_xml_valid_only_with_parser(
     format_penalty_weight: float,
     valid_base: float,
     invalid_penalty_scale: float,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     gen_open = parse_xml_open_lines(response)
-    parts = dict(graph_penalties_from_open_lines(prompt, gen_open, normalize=normalize_penalties))
+    parts = dict(graph_penalties_from_open_lines(prompt, gen_open))
     parts["format_penalty"] = 0.0 if has_xml_format(response) else 1.0
     is_valid = (
         parts["invalid_edges"] == 0.0
@@ -301,7 +295,6 @@ def compute_reward_xml_iou_only(
     precision_weight: float = 1.0,
     recall_weight: float = 1.0,
     copy_penalty: float = 2.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """XML-only GT Open Lines reward with current-config improvement shaping."""
     return _compute_reward_xml_iou_only_with_parser(
@@ -315,7 +308,6 @@ def compute_reward_xml_iou_only(
         precision_weight=precision_weight,
         recall_weight=recall_weight,
         copy_penalty=copy_penalty,
-        normalize_penalties=normalize_penalties,
     )
 
 
@@ -331,12 +323,11 @@ def _compute_reward_xml_iou_only_with_parser(
     precision_weight: float,
     recall_weight: float,
     copy_penalty: float,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     gen_open = parse_xml_open_lines(response)
     gt_open = parse_xml_open_lines(gt_response) if gt_response else []
     current_open = parse_open_lines(prompt)
-    parts = dict(graph_penalties_from_open_lines(prompt, gen_open, normalize=normalize_penalties))
+    parts = dict(graph_penalties_from_open_lines(prompt, gen_open))
     parts["format_penalty"] = 0.0 if has_xml_format(response) else 1.0
 
     exact, iou_pred_gt = _edge_set_iou(gen_open, gt_open)
@@ -384,7 +375,6 @@ def compute_reward_xml_valid_and_iou(
     copy_penalty: float = 2.0,
     valid_base: float = 0.0,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """XML-only graph-valid gate plus GT Open Lines IoU."""
     return _compute_reward_xml_valid_and_iou_with_parser(
@@ -404,7 +394,6 @@ def compute_reward_xml_valid_and_iou(
         copy_penalty=copy_penalty,
         valid_base=valid_base,
         invalid_penalty_scale=invalid_penalty_scale,
-        normalize_penalties=normalize_penalties,
     )
 
 
@@ -424,7 +413,6 @@ def compute_reward_full_xml_valid_and_iou(
     copy_penalty: float = 2.0,
     valid_base: float = 0.0,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """Full XML graph-valid gate plus GT Open Lines IoU.
 
@@ -448,7 +436,6 @@ def compute_reward_full_xml_valid_and_iou(
         copy_penalty=copy_penalty,
         valid_base=valid_base,
         invalid_penalty_scale=invalid_penalty_scale,
-        normalize_penalties=normalize_penalties,
     )
 
 
@@ -470,7 +457,6 @@ def _compute_reward_xml_valid_and_iou_with_parser(
     copy_penalty: float,
     valid_base: float,
     invalid_penalty_scale: float,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     valid_reward, parts = _compute_reward_xml_valid_only_with_parser(
         prompt=prompt,
@@ -483,7 +469,6 @@ def _compute_reward_xml_valid_and_iou_with_parser(
         format_penalty_weight=format_penalty_weight,
         valid_base=valid_base,
         invalid_penalty_scale=invalid_penalty_scale,
-        normalize_penalties=normalize_penalties,
     )
     parts["iou"] = 0.0
     parts["iou_current_gt"] = 0.0
@@ -506,7 +491,6 @@ def _compute_reward_xml_valid_and_iou_with_parser(
         precision_weight=precision_weight,
         recall_weight=recall_weight,
         copy_penalty=copy_penalty,
-        normalize_penalties=normalize_penalties,
     )
     parts["iou"] = iou_parts["iou"]
     parts["iou_current_gt"] = iou_parts["iou_current_gt"]
@@ -530,7 +514,6 @@ def compute_reward_valid_and_iou(
     iou_weight: float = 10.0,
     valid_base: float = 1.0,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """Current default shape: invalid penalty; valid gets base + IoU bonus."""
     valid_reward, parts = compute_reward_valid_only(
@@ -542,7 +525,6 @@ def compute_reward_valid_and_iou(
         format_penalty_weight=format_penalty_weight,
         valid_base=valid_base,
         invalid_penalty_scale=invalid_penalty_scale,
-        normalize_penalties=normalize_penalties,
     )
     parts["iou"] = 0.0
     parts["gt_exact_match"] = 0.0
@@ -582,15 +564,16 @@ def compute_reward_iou(
     iou_weight: float = 10.0,
     valid_base: float = 1.0,
     invalid_penalty_scale: float = 10.0,
-    normalize_penalties: bool = False,
 ) -> tuple[float, dict[str, float]]:
     """Layered reward: graph validity gate + IoU-vs-GT bonus on the valid branch.
 
     No simulator dependency. The IoU is computed by ``compute_gt_match`` over
     undirected canonical edges (same definition used by eval).
 
-    When ``normalize_penalties=True``, graph penalties are divided by network
-    size for cross-scale comparability (see Eq. 5 in the paper).
+    Reward shape (with defaults valid_base=1, iou_weight=10, scale=10):
+      invalid sample : -graph_penalty_sum * 10        ≈ [-30, 0]
+      valid + iou=0  : 1                             (worst valid)
+      valid + iou=1  : 11                            (perfect match)
     """
     return compute_reward_valid_and_iou(
         prompt=prompt,
@@ -603,5 +586,4 @@ def compute_reward_iou(
         iou_weight=iou_weight,
         valid_base=valid_base,
         invalid_penalty_scale=invalid_penalty_scale,
-        normalize_penalties=normalize_penalties,
     )

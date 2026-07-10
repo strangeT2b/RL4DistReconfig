@@ -1,0 +1,10 @@
+{
+  "backend": "verl",
+  "data_path": "Dataset/Processed/train_33_69_84_nodes.csv",
+  "verl_data_dir": "Dataset/verl/train_33_69_84_nodes",
+  "prepare_data": "0",
+  "model_path": "../models/Qwen/Qwen3-8B",
+  "output_root": "runs/qwen3_8b",
+  "run_name": "grpo_verl_v1",
+  "tag": "verl"
+}

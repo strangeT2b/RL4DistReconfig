@@ -129,6 +129,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
@@ -165,9 +167,8 @@ runs/**/*_merged/
 runs/**/merged_model/
 cython_debug/
 
-# Claude Code (local-only; remote does not use it)
+# Claude Code local state
 .claude/
-CLAUDE.md
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
@@ -184,20 +185,55 @@ CLAUDE.md
 tmp/
 .ray_tmp/
 .ray_tmp_iou_only/
+.local_backups/
+*.pid
+pid.txt
+log_path.txt
 Dataset/**/*.csv
 Dataset/**/.gitattributes
 Dataset/.ipynb_checkpoints/
 
+# Generated datasets and distilled training corpora
+Dataset/Processed_jsonl/
+Dataset/reasoning_jsonl/
+
+# Generated CoT artifacts and archived prototypes
+CoT_distill/outputs/
+CoT_distill/test/outputs/
+CoT_distill/config/CoT_distill/test/outputs/
+CoT_distill/old_code_archive/
+CoT_distill/few_shot/*.before_rewrite_*.json
+
+# Local API and evaluation results
+outputs/
+
+# Obsolete copies moved to Eval/
+test/fewshot_demos*.jsonl*
+
+# One-off API probes tied to retired local evaluation paths
+CoT_distill/test/scripts/test_gpt55_self_improve.py
+CoT_distill/test/scripts/test_gpt55_sim_improve_84.py
+
+# Retired stage-3 configuration; long_cot_distill.yaml is the active path
+CoT_distill/config/reconfig_stage3.yaml
+
 # Weights & Biases local run cache (binary, often >50MB; tracked online instead)
 wandb/
 
-# Run artifacts: not tracked by git (too large, machine-specific).
-# Use rsync between machines instead.
-runs/
-outputs/
-
-# SSH keys
-.ssh/
+# Run outputs: keep directory structure + small metadata, ignore heavy weights.
+# - intermediate HF Trainer checkpoints (checkpoint-*/) are skipped wholesale
+# - final adapter weights at run root are skipped
+# - configs / trainer_state / eval CSV+TXT / small logs are tracked
+runs/**/checkpoint-*/
+runs/**/global_step*/
+runs/**/merged_model*/
+runs/**/*.safetensors
+runs/**/*.bin
+runs/**/*.pt
+runs/**/*.pth
+runs/**/optimizer.*
+runs/**/scheduler.*
+runs/**/rng_state.*
 
 
 # Local archives
@@ -208,5 +244,11 @@ outputs/
 *.7z
 *.rar
 
-AGENTS.md
-LLM4DistReconfig/
+# Tokenizer files in final_adapter/ are redundant (identical to base model)
+runs/**/tokenizer.json
+runs/**/tokenizer_config.json
+runs/**/tokenizer.model
+runs/**/special_tokens_map.json
+runs/**/chat_template.jinja
+runs/**/vocab.json
+runs/**/merges.txt

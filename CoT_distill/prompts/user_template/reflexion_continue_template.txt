@@ -1,0 +1,28 @@
+Continue your own previous reasoning after the self-reflection.
+
+## Problem
+{problem}
+
+## Previous Reasoning
+{old_think}
+
+## Self-Reflection
+{reflection}
+
+Continue from the self-reflection. Do not restart from the beginning and do not repeat the previous reasoning. Re-check the affected tie-loop or branch-exchange tradeoff, compare a better candidate if needed, then output the final answer.
+
+Return only:
+<think>
+<continuation reasoning only>
+</think>
+<answer>
+<open_lines>
+[(u1,v1),(u2,v2),...]
+</open_lines>
+<node_voltages>
+[v1,v2,...]
+</node_voltages>
+<system_loss>
+loss
+</system_loss>
+</answer>

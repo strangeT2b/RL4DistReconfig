@@ -1,0 +1,14 @@
+Inspect the previous reasoning trace and write one actionable self-reflection continuation.
+
+## Problem
+{problem}
+
+## Previous Reasoning
+{old_think}
+
+## Diagnostic Feedback
+{feedback}
+
+First silently identify the most likely reasoning failure mode in the previous reasoning. Focus on what the reasoning failed to compare, which candidate was accepted too early, or which weak/heavy path was not actually relieved. Then write only one short self-reflection paragraph starting with "Wait,".
+
+The paragraph must be specific enough to guide the next reasoning step: mention the affected region, loop, feeder section, or branch exchange when the previous reasoning makes one identifiable. It must sound like the reasoning agent noticed the issue by itself. Do not discuss process details, scoring, tooling, or external feedback.

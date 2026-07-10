@@ -1,0 +1,13 @@
+{
+  "backend": "verl",
+  "data_path": "Dataset/Processed/train_33_69_84_nodes.csv",
+  "verl_data_dir": "Dataset/verl/train_33_69_84_nodes",
+  "val_files": "Dataset/verl/train_33_69_84_nodes/validation_64.parquet",
+  "prepare_data": "0",
+  "model_path": "runs/llama31_8b_instruct/merged/sft_ce_ep3_1",
+  "output_root": "runs/llama31_8b_instruct",
+  "run_name": "grpo_verl_from_sft_ce_ep3_1",
+  "max_steps": "",
+  "val_batch_size": "128",
+  "tag": "verl"
+}

@@ -1,0 +1,16 @@
+{
+  "backend": "verl",
+  "data_path": "Dataset/Processed/train_33_69_84_nodes.csv",
+  "verl_data_dir": "Dataset/verl/train_33_69_84_nodes",
+  "val_files": "Dataset/verl/train_33_69_84_nodes/validation_64.parquet",
+  "prepare_data": "0",
+  "model_path": "runs/llama31_8b_instruct/merged/sft_ce_ep_1__on__train_33_69_84_nodes/checkpoint-100",
+  "output_root": "runs/llama31_8b_instruct",
+  "run_name": "grpo_verl_iou_only_from_sft_ce_ep1_ckpt100_save50",
+  "max_steps": "",
+  "val_batch_size": "128",
+  "gradient_checkpointing": "True",
+  "reward_function_name": "compute_score_iou_only",
+  "rollout_data_dir": "runs/llama31_8b_instruct/grpo_verl_iou_only_from_sft_ce_ep1_ckpt100_save50/rollouts",
+  "tag": "verl"
+}

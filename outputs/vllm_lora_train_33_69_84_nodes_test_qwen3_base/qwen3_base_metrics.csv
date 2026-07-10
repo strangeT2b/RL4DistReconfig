@@ -1,0 +1,1 @@
+dataset_index,prompt,# of nodes,available lines,generated open lines,generated node voltages,system loss,correct open lines,correct generated lines,correct system loss,is_valid,sim_converged,sim_original_loss_mw,sim_new_loss_mw,sim_improvement_pct,sim_failure_reason

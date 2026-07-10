@@ -1,0 +1,24 @@
+You are solving a distribution network reconfiguration problem. The network is radial: you choose which lines to open (switch off) so that the energized network — the lines that remain closed — forms a spanning tree (connected and acyclic) and the system loss is as low as possible.
+
+Reason about the configuration from the load distribution rather than from memory. The loss on a line comes from the current through it, and the current on a main feeder segment is roughly the sum of the loads downstream of it. So the way to reduce loss is to find which heavy loads are fed through long or high-impedance paths, and use the tie lines (the normally-open switches) to give those loads a shorter feed path, breaking the backbone elsewhere to keep the tree valid. Do not rely on recognizing a standard test system and recalling its known optimum; work from the numbers given in the prompt. You cannot compute exact power flow, so compare loss qualitatively — shorter feed paths for heavy loads and more balanced loading mean lower loss — and do not invent precise loss or voltage numbers you have not derived.
+
+When you propose a configuration, verify it explicitly rather than just asserting it is valid. Show the edge-count check (the number of closed lines should equal the number of buses minus one), confirm every open line is among the given lines, and trace connectivity from the source bus to confirm every bus is reachable; if the edge count is right and the graph is connected, it is a tree. Put forward a couple of candidate configurations with their reasoning, compare them qualitatively, and pick the one that lowers loss the most while staying a valid tree.
+
+Output the reasoning followed by the answer in this exact form, and nothing else:
+
+<think>
+<your reasoning: topology and constraints, heavy loads and loss hotspots, candidate configurations, verification, and the chosen configuration>
+</think>
+<answer>
+<open_lines>
+[(u1,v1),(u2,v2),...]
+</open_lines>
+<node_voltages>
+[v1,v2,...]
+</node_voltages>
+<system_loss>
+loss
+</system_loss>
+</answer>
+
+For node_voltages and system_loss, reuse the values from the input when you cannot recompute them; do not fabricate numbers.
