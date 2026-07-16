@@ -1,0 +1,105 @@
+# SampleN after-400 production config.
+# Purpose: continue from the ~400-record point with K=2 sampling so each
+# problem can yield one selected final trace and one sidecar rejected candidate.
+# This file is standalone and does not overwrite long_cot_distill.yaml.
+data:
+  qa_data_path: ../../Dataset/Processed_jsonl/33_69_84_nodes_washed/train_washed_interleaved_seed20260713.jsonl
+  output_dir: ../outputs/sampleN_after400_k2_loose_gtcorr
+  cot_history_path: ""
+
+few_shot:
+  path: ../few_shot/long_few_shot.json
+  num_samples: 2
+  seed: 20260710
+
+prompts:
+  reason_system: ../prompts/system_msg/long_reason_system.txt
+  eval_system: ../prompts/system_msg/long_eval_system.txt
+  reflexion_system: ../prompts/system_msg/long_reflexion_system.txt
+  reasoning_template: ../prompts/user_template/reasoning_template.txt
+  quality_eval_template: ../prompts/user_template/quality_eval_template.txt
+  improvement_template: ../prompts/user_template/improvement_template.txt
+  reflexion_template: ../prompts/user_template/reflexion_template.txt
+  reflexion_continue_template: ../prompts/user_template/reflexion_continue_template.txt
+  polish_template: ../prompts/user_template/polish_template.txt
+  gt_guided_correction_template: ../prompts/user_template/gt_guided_correction_template.txt
+
+models:
+  reason:
+    name: gpt-5.5
+    base_url: ""
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    temperature: 0.7
+    max_tokens: 4096
+  eval:
+    name: gpt-5.4-mini
+    base_url: ""
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    max_tokens: 1024
+  reflexion:
+    name: gpt-5.5
+    base_url: ""
+    base_url_env: MY_BASE_URL
+    api_key_env: MY_API_KEY
+    temperature: 0.4
+    max_tokens: 1024
+
+agents:
+  reason_role_name: Reconfiguration Expert
+  eval_role_name: Reconfiguration Evaluator
+  reflexion_role_name: Reconfiguration Reflection Agent
+
+pipeline:
+  use_reflexion: false
+  # K=2: best candidate is selected for GT correction/polish; the other
+  # candidate remains in the .candidates.jsonl sidecar for rejected-pair use.
+  rejection_sampling_n: 2
+  gt_correction:
+    enabled: true
+    # Loose but non-zero gate: improves pair coverage without correcting
+    # completely unrelated candidates into answer-conditioned rationales.
+    min_iou: 0.40
+    min_recall: 0.50
+    require_valid: true
+    min_hit_by_bus:
+      "33": 3
+      "69": 2
+      "84": 8
+    min_iou_by_bus:
+      "33": 0.40
+      "69": 0.25
+      "84": 0.40
+    min_recall_by_bus:
+      "33": 0.50
+      "69": 0.40
+      "84": 0.55
+  # Separate action budgets: reflexion changes the cumulative reasoning chain;
+  # polish and immediate GT correction are one-shot terminal actions.
+  max_reflexion_iterations: 2
+  max_answer_locked_polish_iterations: 1
+  max_gt_guided_correction_iterations: 1
+  score_threshold: 0.75
+  min_iou_accept: 0.75
+  min_reasoning_quality_accept: 0.70
+  min_reasoning_quality_polish: 0.70
+  min_no_leak_accept: 0.90
+  batch_size: 4
+  max_workers: 4
+  max_workers_cap: 4
+  request_timeout: 900
+  max_retries: 5
+  agent_retry_attempts: 5
+  agent_retry_delay: 2.0
+  agent_step_timeout: 900
+  camel_retry_max_retries: 3
+  camel_retry_delay: 2.0
+  problem_max_retries: 2
+  problem_retry_delay: 5.0
+  improve_retry: 5
+
+preserve_metadata_keys:
+  - meta
+  - bus
+  - source_id
