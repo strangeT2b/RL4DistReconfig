@@ -54,7 +54,7 @@ def parse_args():
     parser.add_argument("--num_samples", type=int, default=-1)
     parser.add_argument("--sample_mode", choices=["first", "random"], default="first")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--max_new_tokens", type=int, default=1200)
+    parser.add_argument("--max_new_tokens", type=int, default=8192)
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--top_p", type=float, default=1.0)
     parser.add_argument("--save_hard_samples", type=int, default=1)
@@ -65,10 +65,14 @@ def parse_args():
     parser.add_argument("--stream", type=int, default=1,
                         help="Use SSE streaming to bypass gateway idle timeouts (e.g. pjlab 60s 504). 1=on, 0=off.")
     parser.add_argument("--few_shot", default=None,
-                        help="Optional JSONL of few-shot demos (bus, prompt, output). Each demo's input+GT "
-                             "answer is prepended to every test prompt as an in-context example.")
-    parser.add_argument("--api_env", choices=["API", "PJ_API", "MY"], default="PJ_API",
-                        help="Which .env gateway: API, PJ_API, or MY. MY reads MY_BASE_URL/MY_API_KEY.")
+                        help="Optional JSONL/JSON of few-shot demos. Supports prompt/output records and "
+                             "CoT_distill long_few_shot problem/solution records.")
+    parser.add_argument("--few_shot_num", type=int, default=-1,
+                        help="Use at most this many few-shot demos from --few_shot. -1 uses all demos.")
+    parser.add_argument("--few_shot_seed", type=int, default=42,
+                        help="Seed for deterministic few-shot subsampling when --few_shot_num is set.")
+    parser.add_argument("--api_env", choices=["API", "PJ_API", "MY", "LAB", "LAB_API"], default="PJ_API",
+                        help="Which .env gateway: API, PJ_API, MY, LAB, or LAB_API. MY/LAB read *_BASE_URL/*_API_KEY; LAB_API also accepts LAB_API_BASE/LAB_API_KEY.")
     return parser.parse_args()
 
 
@@ -178,13 +182,22 @@ def main():
     args = parse_args()
     load_project_env(REPO_ROOT / ".env")
 
-    # Choose gateway: --api_env API/PJ_API read <PREFIX>_BASE/<PREFIX>_KEY.
-    # MY is kept compatible with the local .env names MY_BASE_URL/MY_API_KEY.
+    # Choose gateway. API/PJ_API use <PREFIX>_BASE/<PREFIX>_KEY.
+    # MY/LAB/LAB_API also support local .env names such as *_BASE_URL/*_API_KEY.
     base_key = args.api_env
     if base_key == "MY":
         api_base = (os.environ.get("MY_BASE_URL") or os.environ.get("MY_BASE") or "").rstrip("/")
         api_key = os.environ.get("MY_API_KEY") or os.environ.get("MY_KEY") or ""
         expected = "MY_BASE_URL and MY_API_KEY"
+    elif base_key in {"LAB", "LAB_API"}:
+        api_base = (
+            os.environ.get("LAB_API_BASE")
+            or os.environ.get("LAB_BASE_URL")
+            or os.environ.get("LAB_BASE")
+            or ""
+        ).rstrip("/")
+        api_key = os.environ.get("LAB_API_KEY") or os.environ.get("LAB_KEY") or ""
+        expected = "LAB_API_BASE/LAB_BASE_URL and LAB_API_KEY"
     else:
         api_base = os.environ.get(f"{base_key}_BASE", "").rstrip("/")
         api_key = os.environ.get(f"{base_key}_KEY", "")
@@ -202,17 +215,20 @@ def main():
     filename_csv = str(output_dir / f"{name}_metrics.csv")
     filename_jsonl = str(output_dir / f"{name}_generations.jsonl")
 
-    # Load ONLY the requested split to avoid OOM on multi-million-row CSVs.
-    # (prepare_train_data loads all splits + builds a `text` column via pandas.)
-    # Read just prompt/output/split in chunks and keep the target split only.
-    import pandas as _pd
+    # Load ONLY the requested split. Use stdlib csv here so API eval remains
+    # runnable in lightweight environments without a working pandas/numpy stack.
+    import csv as _csv
     split = args.split
-    parts = []
-    for chunk in _pd.read_csv(args.data_path, usecols=["prompt", "output", "split"],
-                              chunksize=200_000):
-        parts.append(chunk[chunk["split"] == split][["prompt", "output"]])
-    df = _pd.concat(parts, ignore_index=True) if parts else _pd.DataFrame(columns=["prompt", "output"])
-    dataset = df.to_dict("records")
+    dataset = []
+    with open(args.data_path, newline="", encoding="utf-8") as _df:
+        reader = _csv.DictReader(_df)
+        required = {"prompt", "output", "split"}
+        missing = required.difference(reader.fieldnames or [])
+        if missing:
+            raise ValueError(f"Dataset is missing required columns: {sorted(missing)}")
+        for row in reader:
+            if row["split"] == split:
+                dataset.append({"prompt": row["prompt"], "output": row["output"]})
     total = len(dataset)
     print(f"Loaded {total} samples (split={split})")
 
@@ -232,30 +248,43 @@ def main():
         from utils.metrics_utils import parse_open_lines
         parse_output = parse_open_lines
 
-    # Few-shot demos: each demo is prepended as "input -> <answer>GT</answer>"
-    # to every test prompt, as in-context examples. Demos come ONLY from train
-    # split (no leakage into test).
-    few_shot_block = ""
+    # Few-shot demos: for each sample, prepend a deterministic random subset of
+    # complete task+answer examples. Demos come ONLY from train split (no test leakage).
+    few_shot_pool = []
     if args.few_shot:
         import json as _fsjson
-        demos = []
         with open(args.few_shot, encoding="utf-8") as _fsf:
-            for line in _fsf:
-                line = line.strip()
-                if line:
-                    demos.append(_fsjson.loads(line))
-        # Build the few-shot prefix: each demo shows a task input followed by
-        # its GT <answer>...</answer>, so the model sees correct reconfigurations.
-        parts = []
-        for d in demos:
-            parts.append(d["prompt"].strip() + "\n" + d["output"].strip())
-        few_shot_block = "\n\n".join(parts) + "\n\n"
-        print(f"Few-shot: {len(demos)} demos loaded from {args.few_shot}")
+            text = _fsf.read().strip()
+        if text.startswith("["):
+            raw_demos = _fsjson.loads(text)
+        else:
+            raw_demos = [_fsjson.loads(line) for line in text.splitlines() if line.strip()]
+
+        for d in raw_demos:
+            prompt = d.get("prompt") or d.get("problem")
+            output = d.get("output") or d.get("solution")
+            if not prompt or not output:
+                raise ValueError(
+                    f"Few-shot demo missing prompt/problem or output/solution keys: {d.get('id', '<unknown>')}"
+                )
+            few_shot_pool.append(prompt.strip() + "\n" + output.strip())
+        print(f"Few-shot pool: {len(few_shot_pool)} demos loaded from {args.few_shot}")
+
+    def _few_shot_block_for_index(dataset_index: int) -> str:
+        if not few_shot_pool:
+            return ""
+        if args.few_shot_num < 0:
+            selected = few_shot_pool
+        else:
+            n_demos = min(args.few_shot_num, len(few_shot_pool))
+            selected = random.Random(args.few_shot_seed + int(dataset_index)).sample(few_shot_pool, n_demos)
+        return "\n\n".join(selected) + "\n\n"
 
     prompts_data = []
     for i in indices:
         raw_prompt = dataset[int(i)]["prompt"]
-        # In few-shot mode, prepend the demo block before the test input.
+        # In few-shot mode, prepend a per-sample deterministic random demo block.
+        few_shot_block = _few_shot_block_for_index(int(i))
         full_prompt = few_shot_block + raw_prompt if few_shot_block else raw_prompt
         prompts_data.append((i, raw_prompt, dataset[int(i)]["output"],
                              format_prompt(full_prompt, args.prompt_format)))
@@ -301,7 +330,7 @@ def main():
     def _record(idx, content, reasoning, finish, error):
         """Score one finished sample and append its full record to the JSONL."""
         raw_prompt = prompt_by_idx[idx][1]
-        gen_text = content if content else reasoning
+        gen_text = "\n".join(part for part in [content, reasoning] if part)
         gt_open = gt_open_by_idx.get(idx, [])
 
         improper_reason = None
